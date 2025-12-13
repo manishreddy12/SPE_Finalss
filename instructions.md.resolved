@@ -1,0 +1,86 @@
+# Step-by-Step Instructions
+
+Follow these steps efficiently to run, verify, and monitor the microservices and HPA.
+
+## 1. Prerequisites
+Ensure you have the following installed:
+- **Minikube**
+- **kubectl**
+- **Docker**
+- **Helm** (Verified installed)
+
+## 2. Start Infrastructure
+Start the local cluster and enable metrics (critical for HPA).
+```bash
+minikube start
+minikube addons enable metrics-server
+```
+
+## 3. Deploy Application & ELK
+Run the unified deployment script. This deploys microservices, databases, HPA, and Filebeat (logging).
+```bash
+./deploy-k8s.sh
+```
+*Wait for all pods to be 'Running' (approx 2-3 mins).*
+
+## 4. Get Access URLs
+Run the following commands to get the access URLs for your services.
+
+**Kibana (Logs):**
+```bash
+minikube service kibana-ui-kibana -n logging --url
+```
+*Check the output for the URL, e.g., http://192.168.49.2:31575*
+
+**Auth Service (API):**
+```bash
+minikube service auth-service -n food-app --url
+```
+*Now exposed as NodePort, so this command will give you a direct access URL.*
+
+## 5. View Logs in Kibana
+1.  Open the **Kibana URL** from Step 4 in your browser.
+    -   *If you see "Kibana server is not ready yet", wait a few minutes. If it persists > 5 mins, run `kubectl delete pod -n logging elasticsearch-master-0` to restart Elasticsearch.*
+2.  Login:
+    -   **Username**: `elastic`
+    -   **Password**: Run this to get it:
+        ```bash
+        kubectl get secret elasticsearch-master-credentials -n logging -o jsonpath="{.data.password}" | base64 -d && echo
+        ```
+3.  Navigate to **Stack Management** (Icon bottom left) -> **Kibana** -> **Data Views** (or Index Patterns).
+4.  Create a data view:
+    -   Name: `filebeat-*`
+    -   Timestamp field: `@timestamp`
+5.  Go to **Discover** (Compass icon) to verify logs from all containers are arriving.
+
+## 6. Verify HPA (Autoscaling)
+Open a new terminal to monitor:
+```bash
+kubectl get hpa -n food-app -w
+```
+Run the load test:
+```bash
+./load-test.sh
+```
+*Watch `REPLICAS` for `auth-hpa` increase from 1 to 5.*
+
+Stop the load test:
+```bash
+kubectl delete pod -n food-app -l run=load-generator
+```
+
+## 7. Troubleshooting
+If Kibana says "Server not ready" for a long time:
+1.  Restart Elasticsearch:
+    ```bash
+    kubectl delete pod -n logging elasticsearch-master-0
+    ```
+2.  Check pod status: `kubectl get pods -n logging`. Wait for `Running` and 1/1.
+3.  Ensure `ELASTICSEARCH_SSL_VERIFICATIONMODE` is `none` (I patched this automatically for you).
+
+## 8. Cleanup
+To stop everything:
+```bash
+./cleanup-k8s.sh
+minikube stop
+```

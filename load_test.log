@@ -1,0 +1,10 @@
+nohup: ignoring input
+🚀 Starting Load Generation on Auth Service...
+Creating a load-generator pod...
+Unable to use a TTY - input is not a terminal or the right kind of file
+All commands and output from this session will be recorded in container logs, including credentials and sensitive information passed through the command prompt.
+If you don't see a command prompt, try pressing enter.
+E1211 12:40:59.541848  196921 v2.go:104] "Unhandled Error" err="read /dev/stdin: bad file descriptor"
+warning: couldn't attach to pod/load-generator, falling back to streaming logs: error stream protocol error: unknown error
+pod "load-generator" deleted from food-app namespace
+error: timed out waiting for the condition

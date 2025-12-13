@@ -1,0 +1,15 @@
+---
+- name: Deploy FoodOrder Microservices Platform
+  hosts: localhost
+  gather_facts: true
+  vars:
+    namespace: food-app
+    dockerhub_username: manishr09
+  vars_files:
+    - secrets.yml
+    
+  tasks:
+    - name: Run K8s Deploy Role
+      include_role:
+        name: k8s-deploy
+

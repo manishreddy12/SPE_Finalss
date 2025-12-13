@@ -1,0 +1,27 @@
+# Node dependencies
+node_modules/
+npm-debug.log
+.eslintcache
+
+# Environment files
+.env
+.env.local
+
+# Git files
+.git
+.gitignore
+
+# OS / Editor files
+.DS_Store
+.vscode/
+
+# App logs & coverage
+logs/
+coverage/
+
+# Build / distribution output
+dist/
+build/
+
+# Ignore Markdown files
+*.md

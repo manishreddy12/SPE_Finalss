@@ -1,0 +1,105 @@
+# Kubernetes Deployment Walkthrough
+
+I have standardized the Kubernetes configuration for the Food Ordering Microservices, enabled Horizontal Pod Autoscaling (HPA), and created automation scripts for easy deployment.
+
+## Deployment Status
+All services are successfully deployed in the `food-app` namespace with HPA enabled.
+
+```
+NAME                                  READY   STATUS    RESTARTS   AGE
+auth-deployment-...                   1/1     Running   0          5m
+order-service-...                     1/1     Running   0          5m
+payment-service-...                   1/1     Running   0          1m
+postgres-...                          1/1     Running   0          10m
+redis-...                             1/1     Running   0          10m
+restaurant-service-...                1/1     Running   0          5m
+```
+
+## How to Run
+
+### Prerequisities
+- **Minikube** (or other local K8s cluster)
+- **kubectl**
+- **Docker**
+- **Metrics Server** (Required for HPA):
+  ```bash
+  minikube addons enable metrics-server
+  ```
+
+### 1. Start Minikube
+Ensure Minikube is running:
+```bash
+minikube start
+```
+
+### 2. Deploy Services
+Run the automated deployment script:
+```bash
+./deploy-k8s.sh
+```
+This script will:
+- Create the `food-app` namespace.
+- Build Docker images locally for all services.
+- Deploy Postgres and Redis.
+- Initialize Database Schemas (tables for Auth, Order, Restaurant).
+- Deploy all microservices.
+- Apply HPA manifests for autoscaling.
+
+### 3. Verify Deployment
+Check the status of the pods:
+```bash
+kubectl get pods -n food-app
+```
+
+Check the status of HPA:
+```bash
+kubectl get hpa -n food-app
+```
+*Note: Usage may show as `<unknown>` for a few minutes while metrics are collected.*
+
+### 4. Verify HPA (Autoscaling)
+To see autoscaling in action, you can generate load on the Auth Service.
+I have created a script for this:
+```bash
+./load-test.sh
+```
+This will launch a load generator pod. Monitor the HPA status:
+```bash
+kubectl get hpa -n food-app -w
+```
+You should see the CPU usage spike and the replicas increase (up to 5).
+
+To stop the load generator:
+```bash
+kubectl delete pod metrics-load-test -n food-app # If using the script name
+# OR if using the commands directly:
+kubectl delete pod -n food-app -l run=load-generator
+```
+
+### 5. Access Services
+You can access the services using `minikube service` or port forwarding.
+Example to access Auth Service:
+```bash
+minikube service auth-service -n food-app
+```
+Or verify health endpoints:
+```bash
+# Get the URL
+minikube service auth-service -n food-app --url
+# Check health
+curl <URL>/health
+```
+
+### 6. Cleanup
+To remove all resources:
+```bash
+./cleanup-k8s.sh
+```
+
+## Changes Made
+- **Standardized Namespace**: All resources now use `food-app` namespace.
+- **Local Images**: Configuration updated to use locally built images (`imagePullPolicy: IfNotPresent`).
+- **Database Configuration**: Fixed inconsistencies in database names and credentials across services.
+- **Auth Service**: Fixed database hostname configuration and added root route handler.
+- **Payment, Order, Restaurant Service**: Added root route handler and fixed Dockerfile/config.
+- **HPA**: Added CPU-based autoscaling (target 50%) for all services.

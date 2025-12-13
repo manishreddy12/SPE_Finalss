@@ -1,0 +1,35 @@
+# Selective Microservice Builds in Jenkins
+
+I have optimized your [Jenkinsfile](file:///home/manish/Sems/SPE/Project/Tillu/SPE_Finalss/Jenkinsfile) to only build, scan, and push Docker images for microservices that have changed in the latest commit. This significantly reduces build time and resource usage.
+
+## Changes Made
+
+### Jenkinsfile
+
+#### [MODIFY] [Jenkinsfile](file:///home/manish/Sems/SPE/Project/Tillu/SPE_Finalss/Jenkinsfile)
+
+- **Change Detection Stage**: Added a new stage `Determine Changed Services` that runs `git diff --name-only HEAD~1 HEAD` to identify modified files.
+- **Conditional Builds**:
+    - The `Build Docker Images` stage now checks environment variables like `AUTH_CHANGED`, `ORDER_CHANGED`, etc.
+    - If a service hasn't changed, its build step is skipped.
+- **Conditional Scans & Pushes**:
+    - Similarly, `Trivy` scans and `docker push` commands are now wrapped in `if` blocks.
+    - `docker login` is only executed if at least one service needs to be pushed.
+
+## Verification
+
+I verified the change detection logic by simulating a commit to `auth-service`.
+
+1.  **Simulated Change**: Created a dummy file in `auth-service`.
+2.  **Detection**: `git diff --name-only HEAD~1 HEAD` correctly output `auth-service/test_change.txt`.
+3.  **Logic Check**: The pipeline logic `changedFiles.contains("auth-service/")` would successfully trigger the build for Auth Service while skipping others.
+
+## How to Use
+
+Simply push your changes as usual.
+- If you change files in `auth-service/`, only Auth Service will be rebuilt.
+- If you change files in multiple services, all changed services will be rebuilt.
+- If you change files outside these directories (e.g., `README.md`), no services will be rebuilt (unless you modify the logic to include a "catch-all").
+
+> [!NOTE]
+> The detection uses `HEAD~1 HEAD`, which compares the current commit with the previous one. This is ideal for CI pipelines triggered by push events.

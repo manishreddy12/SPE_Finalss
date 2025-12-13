@@ -1,0 +1,33 @@
+# Jenkins on Minikube Configuration Walkthrough
+
+I have configured your Jenkins setup to run correctly on Minikube and be able to build Docker images.
+
+## Changes
+
+### 1. Enabled Docker-in-Jenkins (DooD)
+Modified [jenkins/deployment.yaml](file:///home/manish/Sems/SPE/Project/Tillu/SPE_Finalss/jenkins/deployment.yaml) to mount the host's Docker socket ([/var/run/docker.sock](file:///var/run/docker.sock)) into the Jenkins container. This allows the Jenkins pod to run `docker build` commands using the Minikube Docker daemon.
+
+```yaml
+          volumeMounts:
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+...
+      volumes:
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+```
+
+### 2. Updated Setup Instructions
+Updated [jenkins-setup.md](file:///home/manish/Sems/SPE/Project/Tillu/SPE_Finalss/jenkins-setup.md) with a script to install the Docker CLI inside the Jenkins pod. This is required because the default Jenkins image does not include the `docker` command.
+
+## Verification Results
+
+### Static Analysis
+- **Deployment Manifest**: Verified that volume mounts and security context (`runAsUser: 0`) are correctly applied.
+- **Setup Guide**: Verified that correct commands for `apt-get` and `curl` are present.
+
+## Context: Jenkinsfiles
+You asked about the multiple Jenkinsfiles:
+- **Root [Jenkinsfile](file:///home/manish/Sems/SPE/Project/Tillu/SPE_Finalss/Jenkinsfile)**: This acts as a "Master Pipeline". It triggers the build of **all** services and uses **Ansible** to deploy the entire stack to Kubernetes. Use this for full system deployments.
+- **Service `Jenkinsfiles`** (e.g., [order-service/Jenkinsfile](file:///home/manish/Sems/SPE/Project/Tillu/SPE_Finalss/order-service/Jenkinsfile)): These are for **Microservice CI/CD**. They handle individual tasks like `npm audit`, `trivy` security scans, and building/pushing just that specific service. Use these for rapid development of a single service.

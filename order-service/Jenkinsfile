@@ -1,0 +1,79 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
+        IMAGE_NAME = "sakethjooluri/order-service"
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                sh 'cd order-service'
+            }
+        }
+        
+        stage('Dependency Audit') {
+            steps {
+                dir('order-service') {
+                    sh 'npm audit --audit-level=moderate || true'
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                dir('order-service') {
+                    sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
+                    sh 'docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest'
+                }
+            }
+        }
+        
+        stage('Security Scan - Trivy') {
+            steps {
+                sh '''
+                    trivy image --severity HIGH,CRITICAL \
+                    --format json --output trivy-report.json \
+                    ${IMAGE_NAME}:${IMAGE_TAG}
+                '''
+                archiveArtifacts artifacts: 'trivy-report.json'
+            }
+        }
+        
+        stage('Push to DockerHub') {
+            steps {
+                sh '''
+                    echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
+                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                    docker push ${IMAGE_NAME}:latest
+                '''
+            }
+        }
+        
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                    kubectl set image deployment/order-service \
+                    order-service=${IMAGE_NAME}:${IMAGE_TAG} \
+                    -n default
+                    kubectl rollout status deployment/order-service -n default
+                '''
+            }
+        }
+    }
+    
+    post {
+        always {
+            sh 'docker logout'
+        }
+        success {
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}

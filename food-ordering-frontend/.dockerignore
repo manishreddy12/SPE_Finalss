@@ -1,0 +1,36 @@
+# Node dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+.eslintcache
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build output (will be in Docker image)
+dist/
+
+# Git files
+.git/
+.gitignore
+
+# OS / Editor files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Documentation
+*.md
+README.md
+
+# Test files
+test/
+**/*.test.js
+**/*.spec.js
+
+# Kubernetes and CI/CD
+k8s/
+Jenkinsfile

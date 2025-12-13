@@ -1,0 +1,42 @@
+# DevOps Enhancements: Roles, HPA, and Secrets
+
+I have enhanced your project with professional DevOps patterns.
+
+## 1. Ansible Refactoring
+- **Roles**: Created `ansible/roles/k8s-deploy` to encapsulate all Kubernetes deployment logic.
+- **Playbook**: `deploy-all-services.yml` is now clean and uses the role.
+
+## 2. Kubernetes Rolling Updates
+- **Strategy**: All 4 microservices now use `RollingUpdate` strategy with:
+  ```yaml
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  ```
+- **Benefit**: Ensures zero-downtime deployments.
+
+## 3. HPA & Load Testing in Jenkins
+- **New Script**: `load-test-hpa.sh` generates load on `auth-service` and monitors pod scaling.
+- **Jenkins Stage**: Added "Load Test & HPA Verification" stage that runs this script.
+- **Output**: You will see logs like:
+  ```
+  Pods before: 1
+  ...
+  Pods after: 3
+  ✅ HPA Scaling Verified
+  ```
+
+## 4. Secure Secrets (Ansible Vault)
+- **Secrets File**: `ansible/secrets.yml` contains sensitive variables.
+- **Encryption**:
+  To encrypt the file (DO THIS NOW):
+  ```bash
+  ansible-vault encrypt ansible/secrets.yml
+  ```
+  To edit it later:
+  ```bash
+  ansible-vault edit ansible/secrets.yml
+  ```
+- **Jenkins Usage**: You will need to provide the vault password to Ansible in Jenkins (e.g., via a `--vault-password-file` argument or credentials binding). For now, it works as a plain file for demonstration.

@@ -1,0 +1,107 @@
+---
+- name: Create Logging namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: logging
+
+- name: Deploy Filebeat
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/filebeat.yaml"
+    namespace: logging
+
+- name: Create Food App namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ namespace }}"
+
+# Common Resources (DB, Redis) from Payment Service
+- name: Deploy PostgreSQL
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ item }}"
+    namespace: "{{ namespace }}"
+  loop:
+    - "{{ playbook_dir }}/../payment-service/k8s/postgres.yaml"
+
+- name: Deploy Redis
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../payment-service/k8s/redis.yaml"
+    namespace: "{{ namespace }}"
+
+# ConfigMaps
+- name: Deploy ConfigMaps
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ item }}"
+    namespace: "{{ namespace }}"
+  loop:
+    - "{{ playbook_dir }}/../auth-service/k8s/config.yaml"
+    - "{{ playbook_dir }}/../restaurant-service/k8s/configmap.yaml"
+    - "{{ playbook_dir }}/../order-service/k8s/configmap.yaml"
+    - "{{ playbook_dir }}/../payment-service/k8s/configmap.yaml"
+
+# Secrets
+- name: Deploy Secrets
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ item }}"
+    namespace: "{{ namespace }}"
+  loop:
+    - "{{ playbook_dir }}/../auth-service/k8s/secret.yaml"
+    - "{{ playbook_dir }}/../restaurant-service/k8s/secrets.yaml"
+    - "{{ playbook_dir }}/../order-service/k8s/secrets.yaml"
+    - "{{ playbook_dir }}/../payment-service/k8s/secrets.yaml"
+
+# Deployments
+- name: Deploy Microservices
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ item }}"
+    namespace: "{{ namespace }}"
+  loop:
+    - "{{ playbook_dir }}/../auth-service/k8s/deployment.yaml"
+    - "{{ playbook_dir }}/../auth-service/k8s/service.yaml"
+    - "{{ playbook_dir }}/../restaurant-service/k8s/deployment.yaml"
+    - "{{ playbook_dir }}/../order-service/k8s/deployment.yaml"
+    - "{{ playbook_dir }}/../payment-service/k8s/deployment.yaml"
+
+# HPAs
+- name: Deploy HPAs
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ item }}"
+    namespace: "{{ namespace }}"
+  loop:
+    - "{{ playbook_dir }}/../auth-service/k8s/hpa.yaml"
+    - "{{ playbook_dir }}/../restaurant-service/k8s/hpa.yaml"
+    - "{{ playbook_dir }}/../order-service/k8s/hpa.yaml"
+    - "{{ playbook_dir }}/../payment-service/k8s/hpa.yaml"
+
+- name: Wait for deployments to be ready
+  kubernetes.core.k8s_info:
+    kind: Deployment
+    namespace: "{{ namespace }}"
+    name: "{{ item }}"
+  register: deployment_status
+  until: deployment_status.resources[0].status.availableReplicas | default(0) >= 1
+  retries: 30
+  delay: 10
+  loop:
+    - auth-deployment
+    - restaurant-service
+    - order-service
+    - payment-service
+
+- name: Display service URLs
+  debug:
+    msg: "Services deployed in namespace: {{ namespace }}"

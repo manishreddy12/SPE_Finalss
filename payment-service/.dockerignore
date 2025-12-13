@@ -1,0 +1,50 @@
+# Node dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+.eslintcache
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Git files
+.git/
+.gitignore
+
+# OS / Editor files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# App logs & coverage
+logs/
+*.log
+coverage/
+.nyc_output/
+
+# Build / distribution output
+dist/
+build/
+
+# Test files
+test/
+**/*.test.js
+**/*.spec.js
+
+# Documentation
+*.md
+README.md
+CHANGELOG.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Kubernetes manifests (already deployed separately)
+k8s/
+kubernetes/
