@@ -8,3 +8,4 @@ E1211 12:40:59.541848  196921 v2.go:104] "Unhandled Error" err="read /dev/stdin:
 warning: couldn't attach to pod/load-generator, falling back to streaming logs: error stream protocol error: unknown error
 pod "load-generator" deleted from food-app namespace
 error: timed out waiting for the condition
+iuhuiu
