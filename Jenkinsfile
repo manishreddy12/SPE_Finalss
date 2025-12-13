@@ -54,40 +54,94 @@ pipeline {
         stage('Determine Changed Services') {
             steps {
                 script {
-                    // Initialize flags to false
+                    echo "Checking changed files..."
+
+                    // Initialize flags
                     env.AUTH_CHANGED = "false"
                     env.ORDER_CHANGED = "false"
                     env.PAYMENT_CHANGED = "false"
                     env.RESTAURANT_CHANGED = "false"
 
-                    // Check for changes in the last commit (HEAD~1 to HEAD)
-                    // If running on a fresh clone or first build, this might need adjustment to diff against a main branch or previous successful build
-                    def changedFiles = sh(script: "git diff --name-only HEAD~1 HEAD", returnStdout: true).trim()
-                    
+                    // Get commit count on repo
+                    def commitCount = sh(
+                        script: "git rev-list --count HEAD",
+                        returnStdout: true
+                    ).trim() as Integer
+
+                    def changedFiles = ""
+
+                    if (commitCount > 1) {
+                        // SAFE DIFF (never fails)
+                        changedFiles = sh(
+                            script: "git diff --name-only HEAD~1 HEAD || true",
+                            returnStdout: true
+                        ).trim()
+                    } else {
+                        echo "Only one commit exists — performing full build."
+                        changedFiles = "ALL"
+                    }
+
                     echo "Changed files:\n${changedFiles}"
 
-                    if (changedFiles.contains("auth-service/")) {
+                    if (changedFiles == "ALL" || changedFiles.contains("auth-service/")) {
                         env.AUTH_CHANGED = "true"
-                        echo "Changes detected in Auth Service"
                     }
-                    if (changedFiles.contains("order-service/")) {
+                    if (changedFiles == "ALL" || changedFiles.contains("order-service/")) {
                         env.ORDER_CHANGED = "true"
-                        echo "Changes detected in Order Service"
                     }
-                    if (changedFiles.contains("payment-service/")) {
+                    if (changedFiles == "ALL" || changedFiles.contains("payment-service/")) {
                         env.PAYMENT_CHANGED = "true"
-                        echo "Changes detected in Payment Service"
                     }
-                    if (changedFiles.contains("restaurant-service/")) {
+                    if (changedFiles == "ALL" || changedFiles.contains("restaurant-service/")) {
                         env.RESTAURANT_CHANGED = "true"
-                        echo "Changes detected in Restaurant Service"
                     }
-                    
-                    // Optional: If changes are in common areas (like Jenkinsfile or ansible), maybe rebuild all?
-                    // For now, sticking strictly to microservice folders as requested.
+
+                    echo "Auth changed: ${env.AUTH_CHANGED}"
+                    echo "Order changed: ${env.ORDER_CHANGED}"
+                    echo "Payment changed: ${env.PAYMENT_CHANGED}"
+                    echo "Restaurant changed: ${env.RESTAURANT_CHANGED}"
                 }
             }
         }
+
+        
+        // stage('Determine Changed Services') {
+        //     steps {
+        //         script {
+        //             // Initialize flags to false
+        //             env.AUTH_CHANGED = "false"
+        //             env.ORDER_CHANGED = "false"
+        //             env.PAYMENT_CHANGED = "false"
+        //             env.RESTAURANT_CHANGED = "false"
+
+        //             // Check for changes in the last commit (HEAD~1 to HEAD)
+        //             // If running on a fresh clone or first build, this might need adjustment to diff against a main branch or previous successful build
+        //             def changedFiles = sh(script: "git diff --name-only HEAD~1 HEAD", returnStdout: true).trim()
+                    
+        //             echo "Changed files:\n${changedFiles}"
+
+        //             if (changedFiles.contains("auth-service/")) {
+        //                 env.AUTH_CHANGED = "true"
+        //                 echo "Changes detected in Auth Service"
+        //             }
+        //             if (changedFiles.contains("order-service/")) {
+        //                 env.ORDER_CHANGED = "true"
+        //                 echo "Changes detected in Order Service"
+        //             }
+        //             if (changedFiles.contains("payment-service/")) {
+        //                 env.PAYMENT_CHANGED = "true"
+        //                 echo "Changes detected in Payment Service"
+        //             }
+        //             if (changedFiles.contains("restaurant-service/")) {
+        //                 env.RESTAURANT_CHANGED = "true"
+        //                 echo "Changes detected in Restaurant Service"
+        //             }
+                    
+        //             // Optional: If changes are in common areas (like Jenkinsfile or ansible), maybe rebuild all?
+        //             // For now, sticking strictly to microservice folders as requested.
+        //         }
+        //     }
+        // }
 
         stage('Security Scan (SAST)') {
             steps {
